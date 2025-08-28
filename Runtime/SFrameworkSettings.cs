@@ -16,6 +16,13 @@ namespace SFramework.Core.Runtime
 
             var filePath = Path.Combine(Application.dataPath, $"SFramework/Settings/{typeof(T).Name}.json");
             
+            // Ensure the directory exists
+            var dir = Path.GetDirectoryName(filePath);
+            if (!Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+            
             if (!File.Exists(filePath))
             {
                 File.WriteAllText(filePath, JsonUtility.ToJson(Activator.CreateInstance<T>(), true), Encoding.UTF8);
