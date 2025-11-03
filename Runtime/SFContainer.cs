@@ -8,30 +8,27 @@ using UnityEngine;
 
 namespace SFramework.Core.Runtime
 {
-    public sealed class SFContainer : ISFContainer
+    public static class SFContainer
     {
-        private static readonly Dictionary<Type, SFInjectableTypeInfo> InjectableTypes;
-        private readonly Dictionary<Type, object> _dependencies = new();
-        private readonly Dictionary<Type, List<Type>> _mapping = new();
-        private readonly List<ISFService> _services = new();
+        private static readonly Dictionary<Type, SFInjectableTypeInfo> _injectableTypes;
+        private static readonly Dictionary<Type, object> _dependencies = new();
+        private static readonly Dictionary<Type, List<Type>> _mapping = new();
+        private static readonly List<ISFService> _services = new();
 
         static SFContainer()
         {
-            InjectableTypes = AppDomain.CurrentDomain.GetAssemblies()
+            _injectableTypes = AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(assembly => assembly.GetTypes())
                 .Where(type => type.IsClass && typeof(ISFInjectable).IsAssignableFrom(type))
                 .Select(type => new SFInjectableTypeInfo(ref type))
                 .ToDictionary(typeInfo => typeInfo.Type, t => t);
+            
+            _dependencies.Clear();
+            _mapping.Clear();
+            _services.Clear();
         }
 
-
-        public SFContainer(GameObject gameObject)
-        {
-            Register<ISFContainer, SFContainer>(this);
-            Root = gameObject.transform;
-        }
-
-        public TService Register<TService, TImplementation>() where TImplementation : class, TService
+        public static TService Register<TService, TImplementation>() where TImplementation : class, TService
         {
             if (_dependencies.ContainsKey(typeof(TService)))
             {
@@ -82,7 +79,7 @@ namespace SFramework.Core.Runtime
             return Register<TService, TImplementation>(instance);
         }
 
-        public TService Register<TService, TImplementation>(object instance) where TImplementation : class, TService
+        public static TService Register<TService, TImplementation>(object instance) where TImplementation : class, TService
         {
             if (_dependencies.ContainsKey(typeof(TService)))
             {
@@ -117,7 +114,7 @@ namespace SFramework.Core.Runtime
             return (TService)instance;
         }
 
-        public TService Register<TService>(object instance)
+        public static TService Register<TService>(object instance)
         {
             if (instance is not TService) return default;
 
@@ -154,7 +151,7 @@ namespace SFramework.Core.Runtime
             return (TService)instance;
         }
 
-        public void Register(Type type, object instance)
+        public static void Register(Type type, object instance)
         {
             if (_dependencies.ContainsKey(type))
             {
@@ -187,15 +184,13 @@ namespace SFramework.Core.Runtime
                 _services.Add(instance as ISFService);
             }
         }
-
-        public Transform Root { get; private set; }
-
-        public T Resolve<T>() where T : class
+        
+        public static T Resolve<T>() where T : class
         {
             return Resolve(typeof(T)) as T;
         }
 
-        public T[] ResolveMany<T>()
+        public static T[] ResolveMany<T>()
         {
             if (!_mapping.ContainsKey(typeof(T))) return Array.Empty<T>();
 
@@ -210,7 +205,7 @@ namespace SFramework.Core.Runtime
             return result;
         }
 
-        public object Resolve(Type type)
+        public static object Resolve(Type type)
         {
             if (_dependencies.TryGetValue(type, out var resolve))
             {
@@ -220,9 +215,9 @@ namespace SFramework.Core.Runtime
             return _dependencies.FirstOrDefault(kvp => type.IsAssignableFrom(kvp.Key)).Value;
         }
 
-        public object[] Bindings => _dependencies.Values.ToArray();
+        public static object[] Bindings => _dependencies.Values.ToArray();
 
-        public async UniTask InitServices(CancellationToken cancellationToken)
+        public static async UniTask InitServices(CancellationToken cancellationToken)
         {
             foreach (var service in _services)
             {
@@ -231,7 +226,7 @@ namespace SFramework.Core.Runtime
         }
 
 
-        public IEnumerable<T> GetDependencies<T>() where T : class
+        public static IEnumerable<T> GetDependencies<T>() where T : class
         {
             var result = new List<T>();
 
@@ -246,11 +241,8 @@ namespace SFramework.Core.Runtime
 
             return result;
         }
-
-        /// <summary>
-        /// Inject all dependencies in container
-        /// </summary>
-        internal void Inject()
+        
+        public static void Setup()
         {
             foreach (var dependency in _dependencies.Values)
             {
@@ -258,7 +250,7 @@ namespace SFramework.Core.Runtime
             }
         }
 
-        internal void Inject(GameObject gameObject, bool includeInactive = false)
+        public static void Inject(GameObject gameObject, bool includeInactive = false)
         {
             foreach (var injectable in gameObject.GetComponentsInChildren<ISFInjectable>(includeInactive))
             {
@@ -266,11 +258,11 @@ namespace SFramework.Core.Runtime
             }
         }
 
-        internal void Inject(object targetObject)
+        public static void Inject(object targetObject)
         {
             if (targetObject == null) throw new ArgumentNullException(nameof(targetObject));
 
-            if (!InjectableTypes.TryGetValue(targetObject.GetType(), out var injectableType)) return;
+            if (!_injectableTypes.TryGetValue(targetObject.GetType(), out var injectableType)) return;
 
             InjectFields(ref targetObject, ref injectableType.Fields);
             InjectProperties(ref targetObject, ref injectableType.Properties);
@@ -278,7 +270,7 @@ namespace SFramework.Core.Runtime
         }
 
 
-        private void InjectFields(ref object targetObject, ref FieldInfo[] injectableFields)
+        private static void InjectFields(ref object targetObject, ref FieldInfo[] injectableFields)
         {
             foreach (var fieldInfo in injectableFields)
             {
@@ -287,7 +279,7 @@ namespace SFramework.Core.Runtime
             }
         }
 
-        private void InjectProperties(ref object targetObject, ref PropertyInfo[] injectableProperties)
+        private static void InjectProperties(ref object targetObject, ref PropertyInfo[] injectableProperties)
         {
             foreach (var propertyInfo in injectableProperties)
             {
@@ -296,7 +288,7 @@ namespace SFramework.Core.Runtime
             }
         }
 
-        private void InjectMethods(ref object targetObject, ref MethodInfo[] methods,
+        private static void InjectMethods(ref object targetObject, ref MethodInfo[] methods,
             ref Dictionary<MethodInfo, ParameterInfo[]> parametersByMethod)
         {
             foreach (var methodInfo in methods)

@@ -6,8 +6,7 @@ namespace SFramework.Core.Runtime
 
         public static void Inject(this object behaviour)
         {
-            if (SFContextRoot._Container == null) return;
-            SFContextRoot._Container.Inject(behaviour);
+            SFContainer.Inject(behaviour);
         }
     }
 }

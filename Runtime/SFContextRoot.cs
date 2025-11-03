@@ -6,10 +6,6 @@ namespace SFramework.Core.Runtime
 {
     public abstract class SFContextRoot : MonoBehaviour
     {
-        internal static SFContainer _Container => _container;
-        protected static ISFContainer Container => _container;
-        private static SFContainer _container;
-
         private UniTaskCompletionSource _initializationCompletionSource;
         public bool IsInitialized { get; private set; }
 
@@ -17,15 +13,14 @@ namespace SFramework.Core.Runtime
         {
             _initializationCompletionSource = new UniTaskCompletionSource();
             PreInit();
-            _container = new SFContainer(gameObject);
-            Bind(_container);
-            _container.Inject();
+            Bind();
+            SFContainer.Setup();
         }
 
         private async UniTaskVoid Start()
         {
-            await _container.InitServices(destroyCancellationToken);
-            await Init(_container, destroyCancellationToken);
+            await SFContainer.InitServices(destroyCancellationToken);
+            await Init(destroyCancellationToken);
             IsInitialized = true;
             _initializationCompletionSource.TrySetResult();
         }
@@ -41,7 +36,7 @@ namespace SFramework.Core.Runtime
         public UniTask.Awaiter GetAwaiter() => WaitForInitialization().GetAwaiter();
 
         protected abstract void PreInit();
-        protected abstract void Bind(SFContainer container);
-        protected abstract UniTask Init(ISFContainer container, CancellationToken cancellationToken);
+        protected abstract void Bind();
+        protected abstract UniTask Init(CancellationToken cancellationToken);
     }
 }
