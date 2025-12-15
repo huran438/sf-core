@@ -10,12 +10,13 @@ namespace SFramework.Core.Runtime
 {
     public static class SFContainer
     {
-        private static readonly Dictionary<Type, SFInjectableTypeInfo> _injectableTypes;
+        private static IReadOnlyDictionary<Type, SFInjectableTypeInfo> _injectableTypes;
         private static readonly Dictionary<Type, object> _dependencies = new();
         private static readonly Dictionary<Type, List<Type>> _mapping = new();
         private static readonly List<ISFService> _services = new();
-
-        static SFContainer()
+        
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
+        private static void Initialization()
         {
             _injectableTypes = AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(assembly => assembly.GetTypes())
