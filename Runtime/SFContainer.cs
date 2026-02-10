@@ -263,7 +263,7 @@ namespace SFramework.Core.Runtime
         {
             if (targetObject == null) throw new ArgumentNullException(nameof(targetObject));
 
-            if (!_injectableTypes.TryGetValue(targetObject.GetType(), out var injectableType)) return;
+            if (_injectableTypes == null || _injectableTypes.TryGetValue(targetObject.GetType(), out var injectableType) == false) return;
 
             InjectFields(ref targetObject, ref injectableType.Fields);
             InjectProperties(ref targetObject, ref injectableType.Properties);
