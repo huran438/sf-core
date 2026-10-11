@@ -2,8 +2,6 @@
 
 # SF Core
 
-[Documentation website](https://docs.secretplace.studio/#sf-core)
-
 ![Package](https://img.shields.io/badge/UPM-sp.sframework.core-5865f2) ![Version](https://img.shields.io/badge/version-0.1.0-5865f2)
 
 SF Core provides a shared service container, reflection-based dependency injection, and Unity scene lifecycle components for the SFramework modules. Use it to register application services in a scene context, inject them into classes or views, and initialize services in a defined order.
